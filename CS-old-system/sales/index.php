@@ -10,799 +10,389 @@ if ($conn->connect_error) {
     die("DB Connection failed: " . $conn->connect_error);
 }
 
-// ---------- FETCH SALES DATA ----------
-$where = "1=1";
-if (!empty($_GET['from']) && !empty($_GET['to'])) {
-    $from = $_GET['from'];
-    $to   = $_GET['to'];
-    $where .= " AND date BETWEEN '$from' AND '$to'";
-}
-if (!empty($_GET['status'])) {
-    $status = $_GET['status'];
-    $where .= " AND status = '$status'";
-}
-if (!empty($_GET['customer'])) {
-    $customer = $_GET['customer'];
-    $where .= " AND customer LIKE '%$customer%'";
-}
+// ---------- HANDLE POST ACTIONS (INSERT / EDIT / DELETE / RETURN) ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-$sql = "SELECT id, date, customer, total, status FROM sales WHERE $where ORDER BY id DESC";
-$result = $conn->query($sql);
-$sales = [];
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $sales[] = $row;
-    }}
+    // ---------- EDIT SALE ----------
+    if (isset($_POST['edit_sale'])) {
+        $id       = (int)$_POST['id'];
+        $date     = $_POST['date'];
+        $customer = $_POST['customer'];
+        $total    = (float)$_POST['total'];
+        $cost     = (float)$_POST['cost'];
+        $status   = $_POST['status'];
 
-// ---------- EDIT SALE ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_sale'])) {
-    $id     = $_POST['id'];
-    $date   = $_POST['date'];
-    $customer = $_POST['customer'];
-    $total = $_POST['total'];
-    $status = $_POST['status'];
+        $stmt = $conn->prepare("UPDATE sales SET date=?, customer=?, total=?, cost=?, status=? WHERE id=?");
+        $stmt->bind_param("ssddsi", $date, $customer, $total, $cost, $status, $id);
+        $stmt->execute();
+        $stmt->close();
 
-    $stmt = $conn->prepare("UPDATE sales SET date=?, customer=?, total=?, status=? WHERE id=?");
-    $stmt->bind_param("ssisi", $date, $customer, $total, $status, $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: ".$_SERVER['PHP_SELF']);
-    exit;
-}
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
 
-// ---------- DELETE SALE ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_sale'])) {
-    $id = $_POST['id'];
-    $stmt = $conn->prepare("DELETE FROM sales WHERE id=?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: ".$_SERVER['PHP_SELF']);
-    exit;
-}
+    // ---------- DELETE SALE ----------
+    if (isset($_POST['delete_sale'])) {
+        $id = (int)$_POST['id'];
+        $stmt = $conn->prepare("DELETE FROM sales WHERE id=?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
 
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
 
-    // ---------- INSERT FORM DATA ----------
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $date     = $_POST['date'];
-    $customer = $_POST['customer'];
-    $total    = $_POST['total'];
-    $status   = $_POST['status'];
+    // ---------- INSERT SALE ----------
+    if (isset($_POST['add_sale'])) {
+        $date     = $_POST['date'];
+        $customer = $_POST['customer'];
+        $total    = (float)$_POST['total'];
+        $cost     = (float)$_POST['cost'];
+        $status   = $_POST['status'];
 
-    $sql = "INSERT INTO sales (date, customer, total, status) 
-            VALUES ('$date', '$customer', '$total', '$status')";
+        $stmt = $conn->prepare("INSERT INTO sales (date, customer, total, cost, status) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssdds", $date, $customer, $total, $cost, $status);
+        $ok = $stmt->execute();
+        $stmt->close();
 
-    if ($conn->query($sql) === TRUE) {
-       echo "<script>
-        alert('✅ Sale record added successfully!')
-        window.location.href = window.location.href.split('?')[0]; // Remove query parameters
-      </script>";
-    } else {
-        echo "<p style='color:red;'>❌ Error: " . $conn->error . "</p>";
+        if ($ok) {
+            echo "<script>
+                    alert('✅ Sale record added successfully!');
+                    window.location.href = window.location.href.split('?')[0];
+                  </script>";
+            exit;
+        } else {
+            $insertError = $conn->error;
+        }
+    }
+
+    // ---------- ADD RETURN ----------
+    if (isset($_POST['add_return'])) {
+        $sale_id = (int)$_POST['sale_id'];
+        $date    = $_POST['date'];
+        $reason  = $_POST['reason'];
+        $refund  = (float)$_POST['refund'];
+
+        $stmt = $conn->prepare("INSERT INTO returns (sale_id, date, reason, refund) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("issd", $sale_id, $date, $reason, $refund);
+        $stmt->execute();
+        $stmt->close();
+
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
     }
 }
-
-// Count total orders
-$sql = "SELECT COUNT(*) AS total_orders FROM sales";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$totalOrders = $row['total_orders'];
-
-// Count unique customers
-$sql = "SELECT COUNT(DISTINCT customer) AS total_cus FROM sales";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$totalCus = $row['total_cus'];
-
-
-// Sum of today's sales total
-$sql = "SELECT IFNULL(SUM(total),0) AS today_revenue 
-        FROM sales 
-        WHERE date = CURDATE()";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$todayRevenue = $row['today_revenue'];
-
-
-// ---------- TODAY'S SALES (count of orders today) ----------
-$sql = "SELECT COUNT(*) AS today_sales FROM sales WHERE date = CURDATE()";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$todaySales = $row['today_sales'];
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ---------- BUILD FILTER ----------
 $where = "1=1";
 if (!empty($_GET['from']) && !empty($_GET['to'])) {
     $from = $_GET['from'];
     $to   = $_GET['to'];
-    $where .= " AND date BETWEEN '$from' AND '$to'";
+    $where .= " AND date BETWEEN '" . $conn->real_escape_string($from) . "' AND '" . $conn->real_escape_string($to) . "'";
 }
 if (!empty($_GET['status'])) {
-    $status = $_GET['status'];
-    $where .= " AND status = '$status'";
+    $status = $conn->real_escape_string($_GET['status']);
+    $where .= " AND status = '" . $status . "'";
 }
 if (!empty($_GET['customer'])) {
-    $customer = $_GET['customer'];
-    $where .= " AND customer LIKE '%$customer%'";
+    $customer = $conn->real_escape_string($_GET['customer']);
+    $where .= " AND customer LIKE '%" . $customer . "%'";
 }
 
-// ---------- FETCH DATA ----------
-$sql = "SELECT id, date, customer, total, status FROM sales WHERE $where ORDER BY id DESC";
+// ---------- FETCH SALES ----------
+$sql = "SELECT id, date, customer, total, cost, status FROM sales WHERE $where ORDER BY id DESC";
 $result = $conn->query($sql);
 $sales = [];
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $sales[] = $row;
     }
 }
 
-// ---------- EXPORTS ----------
-if (isset($_GET['export'])) {
-    $type = $_GET['export'];
-
-    // --- CSV ---
-    if ($type == "csv") {
-        header("Content-Type: text/csv");
-        header("Content-Disposition: attachment; filename=sales_report.csv");
-        $out = fopen("php://output", "w");
-        fputcsv($out, ["ID","Date","Customer","Total","Status"]);
-        foreach ($sales as $s) {
-            fputcsv($out, $s);
-        }
-        fclose($out);
-        exit;
+// ---------- FETCH RETURNS ----------
+$sql = "SELECT r.id, r.sale_id, r.date, r.reason, r.refund, s.customer 
+        FROM returns r 
+        JOIN sales s ON r.sale_id = s.id
+        ORDER BY r.id DESC";
+$result = $conn->query($sql);
+$returns = [];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $returns[] = $row;
     }
+}
 
-    // --- Excel ---
-    if ($type == "excel") {
-        require "vendor/autoload.php";
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
+// ---------- DASH STATS ----------
+$sql = "SELECT COUNT(*) AS total_orders FROM sales";
+$res = $conn->query($sql);
+$totalOrders = ($res) ? (int)$res->fetch_assoc()['total_orders'] : 0;
 
-        $sheet->fromArray(["ID","Date","Customer","Total","Status"], NULL, "A1");
-        $sheet->fromArray($sales, NULL, "A2");
+$sql = "SELECT COUNT(DISTINCT customer) AS total_cus FROM sales";
+$res = $conn->query($sql);
+$totalCus = ($res) ? (int)$res->fetch_assoc()['total_cus'] : 0;
 
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        header("Content-Disposition: attachment; filename=sales_report.xlsx");
-        $writer->save("php://output");
-        exit;
-    }
+$sql = "SELECT IFNULL(SUM(total),0) AS today_revenue FROM sales WHERE date = CURDATE()";
+$res = $conn->query($sql);
+$todayRevenue = ($res) ? (float)$res->fetch_assoc()['today_revenue'] : 0.0;
 
+$sql = "SELECT COUNT(*) AS today_sales FROM sales WHERE date = CURDATE()";
+$res = $conn->query($sql);
+$todaySales = ($res) ? (int)$res->fetch_assoc()['today_sales'] : 0;
 
-  }
+$sql = "SELECT IFNULL(SUM(total - cost),0) AS profit_loss FROM sales";
+$res = $conn->query($sql);
+$profitLoss = ($res) ? (float)$res->fetch_assoc()['profit_loss'] : 0.0;
 
-
+$sql = "SELECT IFNULL(SUM(refund),0) AS total_returns FROM returns";
+$res = $conn->query($sql);
+$totalReturns = ($res) ? (float)$res->fetch_assoc()['total_returns'] : 0.0;
 
 ?>
-<!DOCTYPE html>
-<html lang="en">
+  <style>
+    body {font-family: Arial; margin:0; padding:20px;}
+    h1 {text-align:center;}
+   
+   
+    button {padding:6px 12px; margin:2px; cursor:pointer;}
+    .addform {display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);}
+    .addform-content {background:#fff; margin:5% auto; padding:20px; border-radius:10px; width:400px; position:relative;}
+    .close {position:absolute; right:15px; top:10px; cursor:pointer; font-size:22px;}
+    .hidden {display:none;}
+    #filterForm {margin:15px 0; padding:10px; background:#f4f4f4; border-radius:8px;}
+  </style>
+<?php include '../main.html'; ?>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sales Management Admin UI</title>
-  <!-- Charts & export -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-    crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style1.css">
-
-</head>
-
-<body>
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left"><img src="logo.jpg" alt="Logo" /></div>
-    <div class="header-middle">
-      <div class="header-middle-title">Sales Management</div>
-      <div class="search-bar"><input id="globalSearch" type="text" placeholder="Search by customer, status or ID..." />
+<aside class="sidebarr">
+  <nav>
+    <div class="add-btn">
+      <div><button class="salesbtn stb" id="salesbtn" onclick="mainPopup()">ADD</button></div>
+      <div><button class="salesbtn" onclick="togglePopup()">Filter</button></div>
+    </div>
+    <section class="layout-side">
+      <div class="card">
+        <h3>Total Today Sales</h3>
+        <p><?= $todaySales ?></p>
       </div>
-    </div>
-    <div class="header-right">
-      
-        <a class="btn" href="?<?= http_build_query(array_merge($_GET,[" export"=>"csv"])) ?>">⬇CSV</a>
-      <button class="role-btn" onclick="window.location.href='../index.html'">Dashboard</button>
-      <div class="user-icon"></div>
+      <div class="card">
+        <h3>Total Orders</h3>
+        <p><?= $totalOrders ?></p>
+      </div>
+      <div class="card">
+        <h3>Total Customers</h3>
+        <p><?= $totalCus ?></p>
+      </div>
+      <div class="card">
+        <h3>Profit / Loss</h3>
+        <p><?= ($profitLoss >= 0 ? "+$" : "-$") . number_format(abs($profitLoss), 2) ?></p>
+      </div>
+      <div class="card">
+        <h3>Total Returns</h3>
+        <p>$<?= number_format($totalReturns, 2) ?></p>
+      </div>
+    </section>
+  </nav>
+</aside>
+
+<main class="free-area">
+  
+        <div class="toolbar" id="popup" style="display:none;">
+          <div class="filter-bar">
+            <!-- FILTER FORM -->
+            <form method="GET">
+              From: <input type="date" name="from" value="<?= htmlspecialchars($_GET['from'] ?? '') ?>">
+              To: <input type="date" name="to" value="<?= htmlspecialchars($_GET['to'] ?? '') ?>">
+              Status:
+              <select name="status">
+                <option value="">All</option>
+                <option <?= (($_GET['status'] ?? '') === "Completed" ? "selected" : "") ?>>Completed</option>
+                <option <?= (($_GET['status'] ?? '') === "Pending" ? "selected" : "") ?>>Pending</option>
+                <option <?= (($_GET['status'] ?? '') === "Cancelled" ? "selected" : "") ?>>Cancelled</option>
+              </select>
+              Customer: <input type="text" name="customer" value="<?= htmlspecialchars($_GET['customer'] ?? '') ?>">
+              <button type="submit">Filter</button>
+            </form>
+          </div>
+        </div>
+  <!-- Add Sale Form -->
+  <div id="addForm" class="addform">
+    <div class="addform-content">
+      <span class="close" onclick="closeForm()">&times;</span>
+      <h2>Add New Sale</h2>
+      <form method="POST" action="">
+        <label>Date</label>
+        <input type="date" name="date" required>
+        <label>Customer</label>
+        <input type="text" name="customer" required>
+        <label>Total</label>
+        <input type="number" step="0.01" name="total" required>
+        <label>Cost</label>
+        <input type="number" step="0.01" name="cost" required>
+        <label>Status</label>
+        <select name="status" required>
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <button type="submit" name="add_sale">Save</button>
+      </form>
     </div>
   </div>
 
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <h1>Sales Dashboard</h1>
-      <nav>
-        <button class="salesbtn" onclick="window.location.href='index.php'">Sales</button>
-        <div class="otherbtn">
-          <button class="Sbtn" onclick="window.location.href='../stoke/stock.php'">Stock</button>
-          <button class="Ubtn" onclick="window.location.href='../order/order.php'">Order</button>
-          <button class="Bbtn" onclick="window.location.href='../booking/index.html'">Booking</button>
-
-        </div>
-        <hr />
-        <p>Sales Management</p>
-        <div class="salebtn">
-          <button class="tab-btn active" onclick="window.location.href='index.php'">Sales Dashboard</button>
-          <button class="tab-btn" onclick="window.location.href='index2.php'">Sales SUM</button>
-         <button class="tab-btn " onclick="window.location.href='index3.php'">Sales Analysis</button>
-          
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main -->
-
-    <main class="free-area">
-      <!-- Dashboard -->
-      <section id="sales-dashboard" class="panel active">
-        <div class="content">
-          <h1>Sales Management </h1>
-           
-          <div class="cards">
-
-            <div class="card">
-              <h3>Total Today Sales</h3>
-              <p>
-                <?php echo $todaySales; ?>
-              </p>
-            </div>
-            <div class="card">
-              <h3>Total Orders</h3>
-              <p id="cardOrders">
-                <?= $totalOrders ?>
-              </p>
-            </div>
-            <div class="card">
-              <h3>Total Customers</h3>
-              <p id="cardCustomers">
-                <?= $totalCus ?>
-              </p>
-            </div>
-          </div>
-          <div class="toolbar">
-            <div class="filter-bar">
-
-
-
-
-              <!-- FILTER FORM -->
-              <form method="GET">
-                From: <input type="date" name="from" value="<?= $_GET['from'] ?? '' ?>">
-                To: <input type="date" name="to" value="<?= $_GET['to'] ?? '' ?>">
-                Status:
-                <select name="status">
-                  <option value="">All</option>
-                  <option <?=(($_GET['status']??'')=="Completed" ?"selected":"") ?>>Completed</option>
-                  <option <?=(($_GET['status']??'')=="Pending" ?"selected":"") ?>>Pending</option>
-                  <option <?=(($_GET['status']??'')=="Cancelled" ?"selected":"") ?>>Cancelled</option>
-                </select>
-                Customer: <input type="text" name="customer" value="<?= $_GET['customer'] ?? '' ?>">
-                <button type="submit">Filter</button>
-              </form>
-            </div>
-            <div style="flex:1">
-
-           
-           <button class="btn secondary" onclick="openForm()">➕ Add Sale</button></div>
-           
-          </div>
-          <div class="table-wrap">
-            <table id="salesTable">
-              <tr>
-                <th data-sort="id">ID ▲▼</th>
-                <th data-sort="date">Date ▲▼</th>
-                <th data-sort="customer">Customer ▲▼</th>
-                <th data-sort="total">Total ▲▼</th>
-                <th data-sort="status">Status ▲▼</th>
-                <th>Action </th>
-              </tr>
-              </thead>
-              <tbody>
-                <?php if(empty($sales)): ?>
-                <tr>
-                  <td colspan="5" class="text-center">No records found</td>
-                </tr>
-                <?php else: ?>
-                <?php foreach($sales as $s): ?>
-                <tr>
-                  <td>
-                    <?= $s['id'] ?>
-                  </td>
-                  <td>
-                    <?= $s['date'] ?>
-                  </td>
-                  <td>
-                    <?= $s['customer'] ?>
-                  </td>
-                  <td>$
-                    <?= number_format($s['total'],2) ?>
-                  </td>
-                  <td>
-                    <?= $s['status'] ?>
-                  </td>
-                  <td>
-                    <div class="row-actions">
-                      <button class="edit" onclick="document.getElementById('edit_id').value='<?= $s['id'] ?>';
-                                          document.getElementById('edit_date').value='<?= $s['date'] ?>';
-                                          document.getElementById('edit_customer').value='<?= $s['customer'] ?>';
-                                          document.getElementById('edit_total').value='<?= $s['total'] ?>';
-                                          document.getElementById('edit_status').value='<?= $s['status'] ?>';
-                                          openModal('editModal');">✏️</button>
-
-                      <button class="del"
-                        onclick="document.getElementById('delete_id').value='<?= $s['id'] ?>'; openModal('deleteModal');">🗑️</button>
-                  </td>
-          </div>
+  <!-- Sales Table -->
+  <section class="panel active">
+    <div class="table-wrap" id="main">
+      <table id="salesTable">
+        <thead>
+          <tr>
+            <th >ID</th><th>Date</th><th>Customer</th><th>Total</th><th>Cost</th><th>Profit/Loss</th><th>Status</th><th>Action</th>
           </tr>
-          <?php endforeach; ?>
+        </thead>
+        <tbody>
+          <?php if (empty($sales)): ?>
+            <tr><td colspan="8">No records found</td></tr>
+          <?php else: ?>
+            <?php foreach ($sales as $s): ?>
+              <?php $pl = $s['total'] - $s['cost']; ?>
+              <tr data-id="<?= $s['id'] ?>" data-date="<?= $s['date'] ?>" data-customer="<?= $s['customer'] ?>" data-total="<?= $s['total'] ?>" data-cost="<?= $s['cost'] ?>" data-status="<?= $s['status'] ?>">
+                <td><?= $s['id'] ?></td>
+                <td><?= $s['date'] ?></td>
+                <td><?= $s['customer'] ?></td>
+                <td>$<?= number_format($s['total'],2) ?></td>
+                <td>$<?= number_format($s['cost'],2) ?></td>
+                <td><?= ($pl >= 0 ? "+$" : "-$") . number_format(abs($pl),2) ?></td>
+                <td><?= $s['status'] ?></td>
+                <td>
+                  <button class="editBtn">✏️</button>
+                  <button class="delBtn">🗑️</button>
+                  <button class="returnBtn">↩️</button>
+                </td>
+              </tr>
+            <?php endforeach; ?>
           <?php endif; ?>
-          </tbody>
-          </table>
-        </div>
-  </div>
+        </tbody>
+      </table>
+    </div>
   </section>
 
+  <!-- Returns Table -->
+  <section id = "main">
+    <h2>Returns</h2>
+        <div class="table-wrap" id="main">
+      <table id="salesTable">
+      <thead  style=" z-index: 1";>
+        <tr><th>ID</th><th>Sale ID</th><th>Customer</th><th>Date</th><th>Reason</th><th>Refund</th></tr>
+      </thead>
+      <tbody>
+        <?php if (empty($returns)): ?>
+          <tr><td colspan="6">No returns yet</td></tr>
+        <?php else: ?>
+          <?php foreach ($returns as $r): ?>
+            <tr>
+              <td><?= $r['id'] ?></td>
+              <td><?= $r['sale_id'] ?></td>
+              <td><?= $r['customer'] ?></td>
+              <td><?= $r['date'] ?></td>
+              <td><?= $r['reason'] ?></td>
+              <td>$<?= number_format($r['refund'],2) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table></div>
+  </section>
 
-
-  <!-- Export -->
-  <section>
-    <!-- Popup Form -->
-    <div id="AddForm" class="addform">
-      <div class="addform-content">
-        <span class="close" onclick="closeForm()">&times;</span>
-        <h2>Add New Sale</h2>
-        <form method="POST" action="">
-          <label for="date">Date</label>
-          <input type="date" name="date" required>
-
-          <label for="customer">Customer</label>
-          <input type="text" name="customer" placeholder="Enter customer name" required>
-
-          <label for="total">Total</label>
-          <input type="number" step="0.01" name="total" placeholder="Enter total" required>
-
-          <label for="status">Status</label>
-          <select name="status" required>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-
-          <button type="submit">Save</button>
-        </form>
-      </div>
+  <!-- Edit Modal -->
+  <div class="addform" id="editModal">
+    <div class="addform-content">
+      <span class="close" onclick="closeModal('editModal')">&times;</span>
+      <h2>Edit Sale</h2>
+      <form method="post">
+        <input type="hidden" name="id" id="edit_id">
+        <label>Date</label>
+        <input type="date" name="date" id="edit_date" required>
+        <label>Customer</label>
+        <input type="text" name="customer" id="edit_customer" required>
+        <label>Total</label>
+        <input type="number" step="0.01" name="total" id="edit_total" required>
+        <label>Cost</label>
+        <input type="number" step="0.01" name="cost" id="edit_cost" required>
+        <label>Status</label>
+        <select name="status" id="edit_status" required>
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <button type="submit" name="edit_sale">Update</button>
+      </form>
     </div>
-    <!-- Edit Modal -->
-    <div class="addform" id="editModal">
-      <div class="addform-content">
-        <span class="close" onclick="closeModal('editModal')">&times;</span>
+  </div>
 
-        <h2>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit Sale</h2>
-        <br><br>
-
-        <form method="post">
-          <input type="hidden" name="id" id="edit_id">
-          <input type="date" name="date" id="edit_date" required>
-          <input type="text" name="customer" id="edit_customer" required>
-          <input type="number" name="total" id="edit_total" required>
-          <select name="status" id="edit_status" required>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-          </select>
-          <div class="row-actions">
-            <br>
-            <hr>
-            <br>
-            <button type="submit" name="edit_sale" class="edit">Update</button>
-          </div>
-        </form>
-      </div>
+  <!-- Delete Modal -->
+  <div class="addform" id="deleteModal">
+    <div class="addform-content">
+      <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+      <h2>Delete Sale</h2>
+      <form method="post">
+        <input type="hidden" name="id" id="delete_id">
+        <p>Are you sure?</p>
+        <button type="submit" name="delete_sale">Delete</button>
+      </form>
     </div>
+  </div>
 
-    <!-- Delete Modal -->
-    <div class="addform" id="deleteModal">
-      <div class="addform-content">
-        <span class="close" onclick="closeModal('deleteModal')">&times;</span>
-
-        <h2>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Delete Sale</h2>
-        <br>
-        <form method="post">
-          <input type="hidden" name="id" id="delete_id">
-          <p>Are you sure you want to delete this sale?</p>
-          <div class="row-actions">
-            <br><br>
-            <hr>
-            <br><br>
-            <button type="submit" name="delete_sale" class="delx">Delete</button>
-          </div>
-        </form>
-      </div>
+  <!-- Return Modal -->
+  <div class="addform" id="returnModal">
+    <div class="addform-content">
+      <span class="close" onclick="closeModal('returnModal')">&times;</span>
+      <h2>Add Return</h2>
+      <form method="post">
+        <input type="hidden" name="sale_id" id="return_sale_id">
+        <label>Date</label>
+        <input type="date" name="date" required>
+        <label>Reason</label>
+        <textarea name="reason" required></textarea>
+        <label>Refund</label>
+        <input type="number" step="0.01" name="refund" required>
+        <button type="submit" name="add_return">Save Return</button>
+      </form>
     </div>
+  </div>
+</main>
 
+<script>
+      // Toggle filter popup
+    function togglePopup() {
+      let popup = document.getElementById("popup");
+      popup.style.display = (popup.style.display === "none") ? "flex" : "none";
+    }
+function togglePopup(){let p=document.getElementById("popup");p.style.display=(p.style.display==="none")?"flex":"none";}
+function mainPopup(){let f=document.getElementById("addForm");let m=document.getElementById("main");let b=document.getElementById("salesbtn");if(!f.style.display||f.style.display==="none"){f.style.display="flex";m.style.display="none";b.textContent="TABLE";}else{f.style.display="none";m.style.display="block";b.textContent="ADD";}}
+function closeForm(){document.getElementById("addForm").style.display="none";document.getElementById("main").style.display="block";document.getElementById("salesbtn").textContent="ADD";}
+function openModal(id){let modal=document.getElementById(id);if(modal) modal.style.display="flex";}
+function closeModal(id){let modal=document.getElementById(id);if(modal) modal.style.display="none";document.getElementById("main").style.display="flex";}
 
-
-    <!-- Analysis -->
-    <section id="sales-analysis" class="panel">
-      <div class="content">
-        <h2>Sales Analysis</h2>
-        <div class="analysis-controls">
-          <div class="filter-row">
-            <label>Year</label>
-            <select id="anYear"></select>
-            <label>Month</label>
-            <select id="anMonth">
-              <option value="all">All</option>
-              <option value="01">Jan</option>
-              <option value="02">Feb</option>
-              <option value="03">Mar</option>
-              <option value="04">Apr</option>
-              <option value="05">May</option>
-              <option value="06">Jun</option>
-              <option value="07">Jul</option>
-              <option value="08">Aug</option>
-              <option value="09">Sep</option>
-              <option value="10">Oct</option>
-              <option value="11">Nov</option>
-              <option value="12">Dec</option>
-            </select>
-            <label>Status</label>
-            <select id="anStatus">
-              <option value="">All</option>
-              <option value="Completed">Completed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-            <button class="btn light" id="anReset">Reset</button>
-          </div>
-        </div>
-
-        <div class="mini-cards">
-          <div class="mini-card">
-            <h4>Revenue</h4>
-            <p id="anRevenue">$0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Orders</h4>
-            <p id="anOrders">0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Avg Order</h4>
-            <p id="anAOV">$0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Top Customer</h4>
-            <p id="anTopCustomer">—</p>
-          </div>
-        </div>
-
-        <div class="charts-grid">
-          <div class="chart-card">
-            <h3>Revenue Over Time</h3>
-            <p class="muted" id="anRangeLabel"></p>
-            <div class="chart-wrap"><canvas id="anChartRevenue"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Top Customers (Revenue)</h3>
-            <p class="muted">Top 5 for the selected period.</p>
-            <div class="chart-wrap"><canvas id="anChartTopCust"></canvas></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- Export 
-      <section id="sales-export" class="panel">
-        <div class="content">
-          <h2>Export Reports</h2>
-          <div class="export-grid">
-            <div class="row">
-              <input type="date" id="expFrom" />
-              <input type="date" id="expTo" />
-              <select id="expStatus">
-                <option value="">All Status</option>
-                <option>Completed</option>
-                <option>Pending</option>
-                <option>Cancelled</option>
-              </select>
-              <input type="text" id="expCustomer" placeholder="Customer" />
-            </div>
-            <div class="row">
-              <button class="btn" id="expCsv">Export CSV</button>
-              <button class="btn secondary" id="expXlsx">Export Excel</button>
-              <button class="btn warn" id="expPdf">Export PDF</button>
-              <span class="muted">Exports use live, filtered data.</span>
-            </div>
-          </div>
-        </div>
-      </section>-->
-
-    <!-- Analysis -->
-    <section id="sales-analysis" class="panel">
-      <div class="content">
-        <h2>Sales Analysis</h2>
-        <div class="analysis-controls">
-          <div class="filter-row">
-            <label>Year</label>
-            <select id="anYear"></select>
-            <label>Month</label>
-            <select id="anMonth">
-              <option value="all">All</option>
-              <option value="01">Jan</option>
-              <option value="02">Feb</option>
-              <option value="03">Mar</option>
-              <option value="04">Apr</option>
-              <option value="05">May</option>
-              <option value="06">Jun</option>
-              <option value="07">Jul</option>
-              <option value="08">Aug</option>
-              <option value="09">Sep</option>
-              <option value="10">Oct</option>
-              <option value="11">Nov</option>
-              <option value="12">Dec</option>
-            </select>
-            <label>Status</label>
-            <select id="anStatus">
-              <option value="">All</option>
-              <option value="Completed">Completed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-            <button class="btn light" id="anReset">Reset</button>
-          </div>
-        </div>
-
-        <div class="mini-cards">
-          <div class="mini-card">
-            <h4>Revenue</h4>
-            <p id="anRevenue">$0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Orders</h4>
-            <p id="anOrders">0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Avg Order</h4>
-            <p id="anAOV">$0</p>
-          </div>
-          <div class="mini-card">
-            <h4>Top Customer</h4>
-            <p id="anTopCustomer">—</p>
-          </div>
-        </div>
-
-        <div class="charts-grid">
-          <div class="chart-card">
-            <h3>Revenue Over Time</h3>
-            <p class="muted" id="anRangeLabel"></p>
-            <div class="chart-wrap"><canvas id="anChartRevenue"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Top Customers (Revenue)</h3>
-            <p class="muted">Top 5 for the selected period.</p>
-            <div class="chart-wrap"><canvas id="anChartTopCust"></canvas></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-
-
-
-
-    </main>
-    </div>
-
-    <!-- Modal Add/Edit -->
-    <div class="modal-backdrop" id="modalBackdrop">
-      <div class="modal">
-        <h2 id="modalTitle">Add Sale</h2>
-        <div class="form-grid">
-          <div><label>ID</label><input id="fId" type="number" placeholder="e.g. 1001"></div>
-          <div><label>Date</label><input id="fDate" type="date"></div>
-          <div class="full"><label>Customer</label><input id="fCustomer" type="text" placeholder="Customer name"></div>
-          <div><label>Total</label><input id="fTotal" type="number" step="0.01" placeholder="Amount"></div>
-          <div>
-            <label>Status</label>
-            <select id="fStatus">
-              <option>Completed</option>
-              <option>Pending</option>
-              <option>Cancelled</option>
-            </select>
-          </div>
-        </div>
-        <div class="footer">
-          <button class="btn light" id="btnCancel">Cancel</button>
-          <button class="btn" id="btnSave">Save</button>
-        </div>
-      </div>
-    </div>
-
-
-
-
-    <script>
-      let chartRevenue, chartTopCust;
-
-      // Populate year dropdown
-      const yearSel = document.getElementById("anYear");
-      const thisYear = new Date().getFullYear();
-      for (let y = thisYear; y >= thisYear - 5; y--) {
-        let opt = document.createElement("option");
-        opt.value = y; opt.textContent = y;
-        if (y === thisYear) opt.selected = true;
-        yearSel.appendChild(opt);
-      }
-
-      function loadAnalysis() {
-        const year = document.getElementById("anYear").value;
-        const month = document.getElementById("anMonth").value;
-        const status = document.getElementById("anStatus").value;
-
-        fetch(`sales_analysis_api.php?year=${year}&month=${month}&status=${status}`)
-          .then(res => res.json())
-          .then(data => {
-            // Mini-cards
-            document.getElementById("anRevenue").textContent = "$" + data.revenue.toFixed(2);
-            document.getElementById("anOrders").textContent = data.orders;
-            document.getElementById("anAOV").textContent = "$" + data.aov.toFixed(2);
-            document.getElementById("anTopCustomer").textContent = data.topCustomer;
-
-            // Revenue chart
-            const labels = Object.keys(data.dailyRevenue);
-            const values = Object.values(data.dailyRevenue);
-
-            if (chartRevenue) chartRevenue.destroy();
-            chartRevenue = new Chart(document.getElementById("anChartRevenue"), {
-              type: "line",
-              data: {
-                labels: labels,
-                datasets: [{
-                  label: "Revenue",
-                  data: values,
-                  borderColor: "#2563eb",
-                  backgroundColor: "rgba(37,99,235,0.2)",
-                  tension: 0.3,
-                  fill: true
-                }]
-              }
-            });
-
-            // Top customers chart
-            if (chartTopCust) chartTopCust.destroy();
-            chartTopCust = new Chart(document.getElementById("anChartTopCust"), {
-              type: "bar",
-              data: {
-                labels: Object.keys(data.topCustomers),
-                datasets: [{
-                  label: "Revenue",
-                  data: Object.values(data.topCustomers),
-                  backgroundColor: "#16a34a"
-                }]
-              }
-            });
-
-            // Range label
-            document.getElementById("anRangeLabel").textContent =
-              (month === "all" ? "Monthly revenue in " + year : "Daily revenue in " + year + "-" + month);
-          });
-      }
-
-      // Event listeners
-      document.getElementById("anYear").addEventListener("change", loadAnalysis);
-      document.getElementById("anMonth").addEventListener("change", loadAnalysis);
-      document.getElementById("anStatus").addEventListener("change", loadAnalysis);
-      document.getElementById("anReset").addEventListener("click", () => {
-        document.getElementById("anYear").value = thisYear;
-        document.getElementById("anMonth").value = "all";
-        document.getElementById("anStatus").value = "";
-        loadAnalysis();
-      });
-
-      // Initial load
-      loadAnalysis();
-
-
-
-
-
-      document.getElementById("btnExportCsv").addEventListener("click", () => {
-        window.location.href = "?<?= http_build_query(array_merge($_GET,["export "=>"csv"])) ?>";
-      });
-
-
-
-
-
-      const sales = <?= json_encode($sales) ?>;
-
-      // --- Prepare Data by Date ---
-      const daily = {};
-      sales.forEach(s => {
-        daily[s.date] = (daily[s.date] || 0) + Number(s.total);
-      });
-      const labels = Object.keys(daily).sort();
-      const values = labels.map(d => daily[d]);
-
-      new Chart(document.getElementById("chartRevenue"), {
-        type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label: "Revenue",
-            data: values,
-            borderColor: "blue",
-            fill: false
-          }]
-        }
-      });
-
-      //popup Add 
-
-      function openForm() {
-        document.getElementById("AddForm").style.display = "flex"; // show
-      }
-
-      function closeForm() {
-        document.getElementById("AddForm").style.display = "none"; // hide
-      }
-
-      //edit and delete
-      function openModal(id) { document.getElementById(id).style.display = "flex"; }
-      function closeModal(id) { document.getElementById(id).style.display = "none"; }
-
-
-      //sort js
-
-      document.querySelectorAll("#salesTable th").forEach((th, idx) => {
-        th.addEventListener("click", () => {
-          const table = th.closest("table");
-          const tbody = table.querySelector("tbody");
-          const rows = Array.from(tbody.querySelectorAll("tr"));
-          const asc = th.classList.toggle("asc"); // toggle ascending/descending
-
-          rows.sort((a, b) => {
-            let valA = a.cells[idx].innerText.trim();
-            let valB = b.cells[idx].innerText.trim();
-
-            // If numeric, compare as numbers
-            if (!isNaN(valA) && !isNaN(valB)) {
-              valA = Number(valA);
-              valB = Number(valB);
-            }
-
-            return asc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
-          });
-
-          rows.forEach(row => tbody.appendChild(row));
-        });
-      });
-
-
-
-
-
-
-
-
-    </script>
-</body>
-
-</html>
+// Row actions
+document.querySelectorAll("#salesTable tbody tr").forEach(row=>{
+  row.querySelector(".editBtn").addEventListener("click",()=>{
+    document.getElementById('edit_id').value=row.dataset.id;
+    document.getElementById('edit_date').value=row.dataset.date;
+    document.getElementById('edit_customer').value=row.dataset.customer;
+    document.getElementById('edit_total').value=row.dataset.total;
+    document.getElementById('edit_cost').value=row.dataset.cost;
+    document.getElementById('edit_status').value=row.dataset.status;
+    document.getElementById("main").style.display="none";
+    openModal('editModal');
+  });
+  row.querySelector(".delBtn").addEventListener("click",()=>{
+    document.getElementById('delete_id').value=row.dataset.id;
+    document.getElementById("main").style.display="none";
+    openModal('deleteModal');
+  });
+  row.querySelector(".returnBtn").addEventListener("click",()=>{
+    document.getElementById('return_sale_id').value=row.dataset.id;
+    document.getElementById("main").style.display="none";
+    openModal('returnModal');
+  });
+});
+</script>

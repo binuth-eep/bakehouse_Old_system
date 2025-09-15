@@ -84,13 +84,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
   <!-- Header -->
   <div class="header">
-    <div class="header-left"><img src="logo.jpg" alt="Logo" /></div>
+    <div class="header-left"><img src="logo.jpg" alt="Logo" style="height:42px" /></div>
     <div class="header-middle">
-      <div class="header-middle-title">Payment Management</div>
-      <div class="search-bar"><input id="globalSearch" type="text" placeholder="Search by customer, status or ID..." />
-      </div>
+      <div class="header-middle-title">Sales Management</div>
+      <div class="search-bar"><input id="globalSearch" type="text" placeholder="Search by customer, status or ID..." /></div>
     </div>
     <div class="header-right">
+      <a class="btn" href="?<?= http_build_query(array_merge($_GET, ["export" => "csv"])) ?>">⬇ CSV</a>
+  
       <button class="role-btn" onclick="window.location.href='../index.html'">Dashboard</button>
       <div class="user-icon"></div>
     </div>
@@ -99,25 +100,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <div class="layout">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <h1>Payment Dashboard</h1>
+      <h1>Sales Dashboard</h1>
       <nav>
-        <button class="salesbtn" onclick="window.location.href='index.php'">Payment</button>
-        <div class="otherbtn">
-          <button class="Sbtn" onclick="window.location.href='../stoke/stock.php'">Stock</button>
-          <button class="Ubtn" onclick="window.location.href='../order/order.php'">Order</button>
-          <button class="Bbtn" onclick="window.location.href='../booking/index.html'">Booking</button>
-
-        </div>
-        <hr />
-        <p>Sales Management</p>
-        <div class="salebtn">
-          <button class="tab-btn active" onclick="window.location.href='index.php'">Sales Dashboard</button>
-          <button class="tab-btn" onclick="window.location.href='save_bill.php'">All Bills</button>
-          <button class="tab-btn " onclick="window.location.href='bill_edit.php'">Sales Analysis</button>
-
-        </div>
+        <section class="layout-btn">
+          <div><button class="salesbtn" onclick="window.location.href='index.php'">Sales</button></div>
+          <div><button class="salesbtn" onclick="window.location.href='../stoke/stock.php'">Stock</button></div>
+          <div><button class="salesbtn" onclick="window.location.href='../order/order.php'">Order</button></div>
+          <div><button class="salesbtn" onclick="window.location.href='../booking/index.html'">Booking</button></div>
+          <div><button class="salesbtn" onclick="window.location.href='../stoke/stock.php'">Payment</button></div>
+          <div><button class="salesbtn" onclick="window.location.href='../order/order.php'">User</button></div>
+        </section>
       </nav>
     </aside>
+
+    <div class="layoutr">
+      <!-- Right sidebar / small stats -->
+      <aside class="sidebarr">
+        <nav>
+          <div class="add-btn1">
+          <div><button class="salesbtn" onclick="window.location.href='save_bill.php'">Payment</button></div>
+          <div><button class="salesbtn" onclick="window.location.href=''">User</button></div>
+          </div>
+             <div class="add-btn1">
+                   <div><button type="button" class="add-btn" onclick="addRow()">➕ </button></div>
+          <div> <button type="submit" class="save-btn">💾 </button></div>
+          </div>
+          <section class="layout-side">
+          </section>
+        </nav>
+      </aside>
+
     <div class="container">
       <h1>🧾 Create New Bill</h1>
       <div class="totals-box">
@@ -144,8 +156,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </tr>
         </table>
         <button type="button" class="add-btn" onclick="addRow()">➕ </button>
-
-
         <button type="submit" class="save-btn">💾 </button>
       </form>
     </div>

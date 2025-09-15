@@ -1,250 +1,8 @@
 <?php require 'db.php'; ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stock Management Admin UI</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+<?php include '../main.html>'?>
+
 <style>
-  :root {
-      --brand: #e37200;
-      --ink: #111827;
-      --paper: #fff;
-      --muted: #6b7280;
-      --soft: #e5e7eb;
-      --warn: #ffc107;
-      --danger: #dc3545;
-      --primary: #007bff;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box
-    }
-
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f6f9;
-      color: #0f172a;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column
-    }
-
-    /* Header */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #fff;
-      padding: 12px 16px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, .08)
-    }
-
-    .header-left img {
-      width: 56px;
-      height: auto;
-      border-radius: 8px;
-      display: block;
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, .15)
-    }
-
-    .header-middle {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1;
-      margin: 0 16px;
-      max-width: 720px
-    }
-
-    .header-middle-title {
-      font-weight: 800;
-      font-size: 26px;
-      color: var(--brand);
-      white-space: nowrap
-    }
-
-    .search-bar {
-      flex: 1;
-      display: flex
-    }
-
-    .search-bar input {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px
-    }
-
-    .role-btn {
-      background: #111827;
-      color: #fff;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer
-    }
-
-    .role-btn:hover {
-      opacity: .9
-    }
-
-    .user-icon {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, #bbb, #888);
-      border-radius: 50%
-    }
-
-    /* Layout */
-    .layout {
-      flex: 1;
-      display: flex;
-      min-height: 0
-    }
-
-    .sidebar {
-      width: 260px;
-      background: #fff;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      border-right: 1px solid #e5e7eb
-    }
-
-    .sidebar h1 {
-      text-align: center;
-      font-size: 20px;
-      margin-bottom: 8px;
-      color: #0f172a
-    }
-
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      gap: 10px
-    }
-
-    /* Sidebar groups */
-    .salesbtn {
-      background: var(--brand);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-weight: 800;
-      font-size: 22px;
-      padding: 12px;
-      text-align: center
-    }
-
-    .otherbtn button {
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      cursor: pointer;
-      padding: 10px 12px;
-      font-weight: 700;
-      gap: 10px;
-    }
-
-    .salebtn button {
-      background: #e37200;
-      border: none;
-      text-align: left;
-      padding: 10px;
-      margin: 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      color: #fff;
-    }
-
-    .Sbtn {
-      background: #30b6a2;
-      margin-left: 10px;
-    }
-
-    .Ubtn {
-      background: #9c0dc7
-    }
-
-    .Bbtn {
-      background: #edcd00
-    }
-
-    .otherbtn button:hover {
-      filter: brightness(1.1)
-    }
-
-    .sidebar hr {
-      margin: 8px 0
-    }
-
-    .sidebar p {
-      font-size: 12px;
-      color: #6b7280;
-      font-weight: 700
-    }
-
-    .salebtn button {
-      background: var(--brand);
-      text-align: left
-    }
-
-    .salebtn button.active {
-      outline: 3px solid rgba(48, 182, 162, .35)
-    }
-
-    .sidebar hr {
-      margin: 8px 0
-    }
-
-    .sidebar p {
-      font-size: 12px;
-      color: #6b7280;
-      font-weight: 700
-    }
-
-    /* Sales Management sub-tabs */
-    .salebtn {
-      display: flex;
-      flex-direction: column
-    }
-
-    .salebtn .tab-btn {
-      background: var(--brand);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      cursor: pointer;
-      padding: 10px 12px;
-      font-weight: 700;
-      text-align: left
-    }
-
-    .salebtn .tab-btn+.tab-btn {
-      margin-top: 8px
-    }
-
-    .salebtn .tab-btn.active {
-      outline: 3px solid rgba(48, 182, 162, .35)
-    }
+ 
 
     /* Main area */
     .free-area {
@@ -263,7 +21,7 @@
     }
 
     .content {
-      background: #e37200;
+      background: #ffffffff;
       border-radius: 14px;
       padding: 18px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
@@ -467,16 +225,12 @@
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .35);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 50
+      
     }
 
     .modal {
       width: 100%;
-      max-width: 520px;
+      max-width: 650px;
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
@@ -484,13 +238,13 @@
     }
 
     .modal h2 {
-      margin-bottom: 10px
+      margin-bottom: 30px
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px
+      gap: 20px
     }
 
     .form-grid .full {
@@ -611,44 +365,16 @@
     }
 
 </style>
-</head>
-<body>
-
-<div class="header">
-  <div class="header-left"><img src="logo.jpg" alt="Logo" /></div>
-  <div class="header-middle">
-    <div class="header-middle-title">Stock Management</div>
-  </div>
-  <button class="role-btn" onclick="window.location.href='../index.html'">Dashboard</button>
-  <div class="user-icon"></div>
-</div>
-
-<div class="layout">
-<aside class="sidebar">
-  <h1>Stock Dashboard</h1>
-  <nav>
-    <button class="salesbtn" disabled>Stock</button>
-    <div class="otherbtn">
-      <button class="Sbtn" onclick="window.location.href='../sales/index.php'">Sales</button>
-      <button class="Ubtn" onclick="window.location.href='../order/order.php'">Order</button>
-      <button class="Bbtn" onclick="window.location.href='../booking/index.html'">Booking</button>
-    </div>
-    <hr />
-    <p>Sales Management</p>
-    <div class="salebtn">
-      <button class="tab-btn active" data-page="stock-dashboard">Stock Dashboard</button>
-      <button class="tab-btn" data-page="stock-analysis" onclick="window.location.href='stock_analysis.php'">Stock Analysis</button>
-      <button class="tab-btn" data-page="stock-export" id="btnExportCsv" onclick="window.location.href='stock_export.php'">Export Report</button>
-    </div>
-  </nav>
-</aside>
-
-<main class="free-area">
-<section id="stock-dashboard" class="panel active">
-<div class="content">
-<h1>Stock Management</h1>
-<div class="cards">
-  <div class="card"><h3>Total Parts</h3><p id="cardTotalParts"><?php
+  <!-- Right sidebar / small stats -->
+      <aside class="sidebarr">
+        <nav>
+          <div class="add-btn">
+            <div><button class="salesbtn stb" id="btnAdd" onclick="mainPopup()">ADD</button></div>
+            <div><button class="salesbtn" onclick="togglePopup()">Filter</button></div>
+               
+          </div>
+          <section class="layout-side">
+ <div class="card"><h3>Total Parts</h3><p id="cardTotalParts"><?php
     $res = $conn->query("SELECT COUNT(*) as c FROM stock");
     $row = $res->fetch_assoc();
     echo $row['c'];
@@ -663,10 +389,20 @@
     $row = $res->fetch_assoc();
     echo $row['l'];
   ?></p></div>
+          </section>
+        </nav>
+      </aside>
+<main class="free-area">
+<section id="stock-dashboard" class="panel active">
+<div class="content">
+<h1>Stock Management</h1>
+<div class="cards">
+ 
 </div>
 
-<div class="toolbar">
-  <div class="filter-bar">
+
+      <div class="toolbar" id="popup" style="display:none;">
+          <div class="filter-bar" >
     <input type="date" id="filterDate" />
     <input type="text" id="filterCategory" placeholder="Category" />
     <select id="filterStatus">
@@ -677,17 +413,18 @@
     </select>
     <button class="btn light" id="btnFilter">Filter</button>
     <button class="btn light" id="btnReset">Reset</button>
+     <button class="btn" id="btnImportCsv">⬇ Import CSV</button>
   </div>
   <div style="flex:1"></div>
-  <button class="btn secondary" id="btnAdd">➕ Add Part</button>
-  <button class="btn" id="btnImportCsv">⬇ Import CSV</button>
+
   <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
 <button class="btn danger" id="btnDeleteSelected">🗑 Delete Selected</button>
 
 </div>
 
-<div class="table-wrap">
-<table id="stockTable">
+
+<div class="table-wrap" id="main">
+<table id="stockTable"  >
   <thead>
     <tr>
       <th><input type="checkbox" id="selectAll"></th> <!-- New select all checkbox -->
@@ -730,6 +467,7 @@
 <!-- Modal Add/Edit -->
 <div class="modal-backdrop" id="modalBackdrop" style="display:none;">
   <div class="modal">
+    
     <h2 id="modalTitle">Add Part</h2>
     <div class="form-grid">
       <input type="hidden" id="fId">
@@ -756,6 +494,28 @@
 </div>
 
 <script>
+      // Toggle filter popup
+    function togglePopup() {
+      let popup = document.getElementById("popup");
+      popup.style.display = (popup.style.display === "none") ? "flex" : "none";
+    }
+
+     // ADD form show/hide
+    function mainPopup() {
+      let addform = document.getElementById("btnAdd");
+      let main = document.getElementById("stockTable");
+      let button = document.getElementById("salesbtn");
+
+      if (!addform.style.display || addform.style.display === "none") {
+        addform.style.display = "flex";
+        main.style.display = "none";
+        button.textContent = "TABLE";
+      } else {
+        addform.style.display = "none";
+        main.style.display = "block";
+        button.textContent = "ADD";
+      }
+    }
 // Modal logic
 const backdrop = document.getElementById('modalBackdrop');
 let editingId = null;

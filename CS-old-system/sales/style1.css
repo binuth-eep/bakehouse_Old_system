@@ -9,6 +9,62 @@
   --primary: #007bff;
 }
 
+.add-btn{
+  display: flex;
+  margin: 10px;
+  gap:5px;
+}
+
+
+.layout-btn {
+  width: 100%;
+
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  grid-auto-flow: row dense;
+}
+
+
+.salesbtn {
+
+	box-shadow:inset 0px 1px 0px 0px #ffffff;
+	background:linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
+	background-color:#ededed;
+	border-radius:6px;
+	border:1px solid #dcdcdc;
+	display:inline-block;
+	cursor:pointer;
+	color:#777777;
+	font-family:Arial;
+	font-size:17px;
+	font-weight:bold;
+	padding:30px 25px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #ffffff;
+  text-align: center;
+  width: 100px;   /* fixed width */
+  height: 60px; 
+  text-align: center;
+}
+.salesbtn:hover {
+	background:linear-gradient(to bottom, #dfdfdf 5%, #ededed 100%);
+	background-color:#dfdfdf;
+}
+.salesbtn:active {
+	position:relative;
+	top:1px;
+}
+  
+
+
+
+
+
+
+
+
 * {
   margin: 0;
   padding: 0;
@@ -104,6 +160,8 @@ body {
 
 /* Fixed Sidebar */
 .sidebar {
+   margin-right: 250px; /* leave space for sidebar */
+      padding: 20px;
   position: fixed;
   top: 70px; /* Below header height */
   left: 0;
@@ -111,13 +169,37 @@ body {
   height: calc(100vh - 70px); /* Full height minus header */
   background: #fff;
   padding: 18px;
-  display: flex;
+  display:flex;
   flex-direction: column;
   gap: 10px;
   border-right: 1px solid #e5e7eb;
   overflow-y: auto; /* Allow scroll inside sidebar if needed, but header/sidebar fixed */
   z-index: 999;
 }
+/* Fixed Sidebar */
+.sidebarr {
+  
+  position: fixed;
+  top: 70px;
+  right: 0;
+  width: 260px;
+  height: calc(100vh - 70px); /* Full height minus header */
+  background: #fff;
+  padding: 18px;
+  display:grid;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto; /* Allow scroll inside sidebar if needed, but header/sidebar fixed */
+  z-index: 999;
+}
+
+.element-4 {
+  position: relative;
+
+}
+
+
 
 .sidebar h1 {
   text-align: center;
@@ -132,59 +214,15 @@ body {
   gap: 10px;
 }
 
-/* Sidebar groups */
-.salesbtn {
-  background: var(--brand);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 800;
-  font-size: 22px;
-  padding: 12px;
-  text-align: center;
-}
 
-.otherbtn button {
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  cursor: pointer;
-  padding: 10px 12px;
-  font-weight: 700;
-  gap: 10px;
-}
 
-.salebtn button {
-  background: #30b6a2;
-  border: none;
-  text-align: left;
-  padding: 10px;
-  margin: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  color: #fff;
-}
 
-.Sbtn {
-  background: #e37200;
-  margin-left: 10px;
-}
 
-.Ubtn {
-  background: #9c0dc7;
-}
 
-.Bbtn {
-  background: #edcd00;
-}
 
-.otherbtn button:hover {
-  filter: brightness(1.1);
-}
+
+
+
 
 .sidebar hr {
   margin: 8px 0;
@@ -196,14 +234,6 @@ body {
   font-weight: 700;
 }
 
-.salebtn button {
-  background: var(--brand);
-  text-align: left;
-}
-
-.salebtn button.active {
-  outline: 3px solid rgba(48, 182, 162, .35);
-}
 
 .sidebar hr {
   margin: 8px 0;
@@ -215,32 +245,9 @@ body {
   font-weight: 700;
 }
 
-/* Sales Management sub-tabs */
-.salebtn {
-  display: flex;
-  flex-direction: column;
-}
 
-.salebtn .tab-btn {
-  background: var(--brand);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  cursor: pointer;
-  padding: 10px 12px;
-  font-weight: 700;
-  text-align: left;
-}
 
-.salebtn .tab-btn + .tab-btn {
-  margin-top: 8px;
-}
 
-.salebtn .tab-btn.active {
-  outline: 3px solid rgba(48, 182, 162, .35);
-  background: #fff;
-  color: var(--brand);
-}
 
 /* Main Content Area - Adjusted for Fixed Elements */
 .layout {
@@ -251,13 +258,32 @@ body {
   display: flex;
   flex-direction: column;
 }
+.layoutr {
+  margin-top: 70px; /* Space for header */
+  margin-right: 260px; /* Space for sidebar */
+  flex: 1;
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+}
 
+
+.layout-side {
+  width: 100%;
+
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: 1fr;
+  gap: 10px;
+  grid-auto-flow: row dense;
+}
 .free-area {
   flex: 1;
   background: #f3f4f6;
   padding: 24px;
   overflow: auto; /* Main content scrolls */
   min-height: 100%;
+  max-width: 750%;
 }
 
 /* Rest of the CSS remains the same */
@@ -270,22 +296,26 @@ body {
 }
 
 .content {
-  background: #30b6a2;
+  background: #e8e4e4;
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  
+  
 }
 .contents {
-  background: #e7ebea;
+   
+  background: #abacab;
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
 }
 
 .cards {
@@ -316,8 +346,8 @@ body {
   color: #0f172a;
 }
 
-.toolbar {
-  display: flex;
+.toolbar {/*--------------------------------------------------*/
+  display: none;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
@@ -371,6 +401,7 @@ body {
   border-radius: 12px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, .06);
   overflow: auto;
+  
 }
 
 table {
@@ -695,31 +726,26 @@ tr:hover td {
   }
 }
 
-.addform {
+.addform {/*------------------------------------------------*/
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+
 }
 
 .addform-content {
-  background: #fff;
-  padding: 20px;
-  align-items: center;
+
+  background: #fff;           /* plain white background */
+  padding: 20px;              /* space inside */
+  align-items: center;        /* center content */
   justify-content: center;
-  border: 3px solid #30b6a2;
-  border-radius: 15px;
-  width: 350px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid #ccc;     /* light gray border */
+  border-radius: 8px;         /* slight rounded corners */
+  width: 680px;               /* fixed width */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* subtle shadow */
   position: relative;
-  animation: fadeIn 0.3s ease-in-out;
 }
+
+
 
 .close {
   position: absolute;
